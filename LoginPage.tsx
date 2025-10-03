@@ -13,6 +13,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ setPage }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isSignUp, setIsSignUp] = useState(false);
+    const [isAwaitingConfirmation, setIsAwaitingConfirmation] = useState(false);
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -20,18 +21,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ setPage }) => {
         setError(null);
 
         try {
-            let response;
             if (isSignUp) {
-                response = await supabase.auth.signUp({ email, password });
+                const { error } = await supabase.auth.signUp({ email, password });
+                if (error) throw error;
+                // Show a confirmation message instead of an alert
+                setIsAwaitingConfirmation(true);
             } else {
-                response = await supabase.auth.signInWithPassword({ email, password });
-            }
-            
-            if (response.error) throw response.error;
-            
-            if (isSignUp) {
-                alert('Check your email for the confirmation link!');
-            } else {
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
                 setPage('chat'); // On successful login, go to chat
             }
 
@@ -41,6 +38,33 @@ const LoginPage: React.FC<LoginPageProps> = ({ setPage }) => {
             setIsLoading(false);
         }
     };
+    
+    if (isAwaitingConfirmation) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen px-4">
+                <div className="w-full max-w-sm p-8 text-center rounded-2xl glass-card">
+                    <h2 className="text-3xl font-bold text-white text-glow mb-4">
+                        Check your email
+                    </h2>
+                    <p className="text-gray-300 mb-6">
+                        We've sent a confirmation link to <br/><strong>{email}</strong>.
+                        <br/><br/>
+                        Please click the link to activate your account.
+                    </p>
+                    <button 
+                        onClick={() => {
+                            setIsAwaitingConfirmation(false);
+                            setIsSignUp(false); // Go back to sign-in mode
+                        }} 
+                        className="w-full px-8 py-3 text-lg font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-500 transition-all"
+                    >
+                        Back to Sign In
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen px-4">
