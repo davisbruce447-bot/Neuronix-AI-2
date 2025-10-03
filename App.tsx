@@ -69,7 +69,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         });
 
         return () => subscription.unsubscribe();
-    }, [isReady]);
+    }, []);
 
     const upgradeToPro = async () => {
         if (!user) return;
@@ -207,7 +207,13 @@ const AppContent: React.FC = () => {
     const { isReady } = useAuth();
 
     if (!isReady) {
-        return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-black hero-bg">
+                <div className="bg-slate-800/70 backdrop-blur-sm px-8 py-4 rounded-lg shadow-lg">
+                    <p className="text-white font-bold text-xl tracking-wider">Loading...</p>
+                </div>
+            </div>
+        );
     }
 
     const renderPage = () => {
