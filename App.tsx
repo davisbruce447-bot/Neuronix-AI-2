@@ -34,41 +34,62 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     const [user, setUser] = useState<User | null>(null);
     const [isReady, setIsReady] = useState(false);
 
-    useEffect(() => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            setSession(session);
-            if (session?.user) {
-                const { data, error } = await supabase
+    const fetchAndSetUser = async (session: Session | null) => {
+        if (!session?.user) {
+            setUser(null);
+            return;
+        }
+
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+        
+        if (error && error.code !== 'PGRST116') {
+            console.error('Error fetching profile:', error);
+            setUser(null);
+            return;
+        }
+
+        if (data) {
+            const now = Date.now();
+            const oneDay = 24 * 60 * 60 * 1000;
+            const lastReset = new Date(data.last_credit_reset).getTime();
+
+            if (data.plan === Plan.Free && now - lastReset > oneDay) {
+                const { data: updatedProfile, error: updateError } = await supabase
                     .from('profiles')
-                    .select('*')
+                    .update({ credits: FREE_PLAN_CREDITS, last_credit_reset: new Date().toISOString() })
                     .eq('id', session.user.id)
+                    .select()
                     .single();
 
-                if (error && error.code !== 'PGRST116') {
-                    console.error('Error fetching profile:', error);
-                    setUser(null);
-                } else if (data) {
-                    const now = Date.now();
-                    const oneDay = 24 * 60 * 60 * 1000;
-                    if (data.plan === Plan.Free && now - new Date(data.last_credit_reset).getTime() > oneDay) {
-                        const { data: updatedProfile, error: updateError } = await supabase
-                            .from('profiles')
-                            .update({ credits: FREE_PLAN_CREDITS, last_credit_reset: new Date().toISOString() })
-                            .eq('id', session.user.id)
-                            .select()
-                            .single();
-                        if (updateError) console.error("Error resetting credits:", updateError);
-                        else setUser({ ...updatedProfile, email: session.user.email });
-                    } else {
-                        setUser({ ...data, email: session.user.email });
-                    }
+                if (updateError) {
+                    console.error("Error resetting credits:", updateError);
+                    setUser({ ...data, email: session.user.email }); // Fallback to old data
+                } else {
+                    setUser({ ...updatedProfile, email: session.user.email });
                 }
             } else {
-                setUser(null);
+                setUser({ ...data, email: session.user.email });
             }
-            // FIX: Set isReady to true after the initial auth state has been processed.
-            // This resolves a bug where the app could get stuck on the loading screen.
+        }
+    };
+
+    useEffect(() => {
+        const initializeSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            setSession(session);
+            await fetchAndSetUser(session);
             setIsReady(true);
+        };
+
+        initializeSession();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            setSession(session);
+            await fetchAndSetUser(session);
         });
 
         return () => subscription.unsubscribe();
