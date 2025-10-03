@@ -1,4 +1,5 @@
 
+
 import React, { useState, createContext, useContext, useEffect } from 'react';
 import { Plan, User, Page } from './types';
 import { FREE_PLAN_CREDITS, PRO_PLAN_PRICE } from './constants';
@@ -65,7 +66,9 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             } else {
                 setUser(null);
             }
-            if(!isReady) setIsReady(true);
+            // FIX: Set isReady to true after the initial auth state has been processed.
+            // This resolves a bug where the app could get stuck on the loading screen.
+            setIsReady(true);
         });
 
         return () => subscription.unsubscribe();
@@ -209,8 +212,8 @@ const AppContent: React.FC = () => {
     if (!isReady) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-black hero-bg">
-                <div className="bg-slate-800/70 backdrop-blur-sm px-8 py-4 rounded-lg shadow-lg">
-                    <p className="text-white font-bold text-xl tracking-wider">Loading...</p>
+                <div className="bg-slate-800 px-8 py-3 rounded-lg shadow-xl">
+                    <p className="text-white font-semibold text-lg tracking-wide">Loading...</p>
                 </div>
             </div>
         );
