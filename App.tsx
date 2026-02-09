@@ -48,6 +48,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         
         if (error && error.code !== 'PGRST116') {
             console.error('Error fetching profile:', error);
+            alert('Could not fetch your user profile. Please try logging in again.');
             setUser(null);
             return;
         }
@@ -103,8 +104,12 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             .eq('id', user.id)
             .select()
             .single();
-        if (error) console.error("Error upgrading to pro:", error);
-        else setUser({ ...data, email: user.email });
+        if (error) {
+            console.error("Error upgrading to pro:", error);
+            alert("There was an error upgrading your account. Please try again.");
+        } else {
+            setUser({ ...data, email: user.email });
+        }
     };
 
     const decrementCredits = async () => {
@@ -116,8 +121,12 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             .eq('id', user.id)
             .select()
             .single();
-         if (error) console.error("Error decrementing credits:", error);
-         else setUser({ ...data, email: user.email });
+         if (error) {
+            console.error("Error decrementing credits:", error);
+            alert("There was an error updating your credits. Please try again.");
+         } else {
+            setUser({ ...data, email: user.email });
+         }
     };
     
     const signOut = async () => {
